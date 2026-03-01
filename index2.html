@@ -1,0 +1,185 @@
+ <!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+    body {
+        margin: 0;
+        overflow: hidden;
+        background: transparent;
+    }
+
+    #fx {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+    }
+
+    /* RACHETA (solid color) */
+    .rocket {
+        position: absolute;
+        width: 14px;
+        height: 45px;
+        background: #ff0066;
+        border-radius: 6px;
+        animation: rocketFly 0.55s cubic-bezier(.17,.67,.83,.67) forwards;
+    }
+
+    @keyframes rocketFly {
+        0% { transform: translateY(0) scale(1); opacity: 1; }
+        100% { transform: translateY(-900px) scale(0.4); opacity: 0; }
+    }
+
+    /* PARTICULE (culori pline) */
+    .particle {
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: var(--color);
+        animation: explode 0.9s ease-out forwards;
+    }
+
+    @keyframes explode {
+        0% { transform: scale(0.4); opacity: 1; }
+        100% { transform: scale(1.2) translate(var(--tx), var(--ty)); opacity: 0; }
+    }
+
+    /* IMAGINE CADOU + CONTUR MULTICOLOR */
+    .gift-img {
+        position: absolute;
+        width: 140px;
+        height: 140px;
+        object-fit: contain;
+        border-radius: 20px;
+        border: 6px solid transparent;
+        background: linear-gradient(45deg, #ff0066, #00ccff, #ffff00, #ff6600);
+        background-clip: padding-box, border-box;
+        padding: 6px;
+        animation: giftPop 1s ease-out forwards;
+    }
+
+    @keyframes giftPop {
+        0% { transform: scale(0.4); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* USERNAME */
+    .uname {
+        position: absolute;
+        color: #000000;
+        font-size: 48px;
+        font-weight: bold;
+        text-shadow: 0 0 6px #ffffff;
+        opacity: 0;
+        animation: unameFade 1.2s ease-out forwards;
+    }
+
+    @keyframes unameFade {
+        0% { opacity: 1; transform: scale(1); }
+        100% { opacity: 0; transform: scale(1.2); }
+    }
+</style>
+</head>
+
+<body>
+
+<div id="fx"></div>
+
+<script>
+    const socket = new WebSocket("ws://localhost:62024");
+
+    socket.onmessage = (event) => {
+        let msg;
+        try { msg = JSON.parse(event.data); } catch { return; }
+
+        if (msg.event === "gift") {
+            const giftName = msg.data?.giftName || "";
+            const giftImg = msg.data?.giftPictureUrl || "";
+            const username = msg.data?.nickname || msg.data?.uniqueId || "Anonim";
+
+            triggerFX(giftName, giftImg, username);
+        }
+    };
+
+    /* CULORI DIFERITE PENTRU CADOURI */
+    const giftFX = {
+        "Popular Vote": ["#ff0066", "#00ccff", "#ffff00", "#ff6600"],
+        "Rose": ["#ff0033", "#ff6699", "#ff3366"],
+        "Lion": ["#ffaa00", "#ffdd55", "#ff8800"],
+        "Universe": ["#0033ff", "#6600ff", "#00ccff"],
+        "Crown": ["#ffd700", "#fff5a0", "#ffcc00"],
+        "Dragon": ["#ff3300", "#ff6600", "#cc0000"]
+    };
+
+    function triggerFX(giftName, giftImg, username) {
+        const colors = giftFX[giftName] || ["#ff0066", "#00ccff", "#ffff00"];
+
+        rocketBurst(username, giftImg, colors);
+    }
+
+    /* RACHETA + EXPLOZIE + IMAGINE CADOU + USERNAME */
+    function rocketBurst(username, giftImg, colors) {
+        const fx = document.getElementById("fx");
+
+        const rocket = document.createElement("div");
+        rocket.classList.add("rocket");
+
+        const x = Math.random() * window.innerWidth;
+        rocket.style.left = x + "px";
+        rocket.style.bottom = "0px";
+
+        fx.appendChild(rocket);
+
+        setTimeout(() => {
+            explode(x, window.innerHeight * 0.55, username, giftImg, colors);
+            rocket.remove();
+        }, 500);
+    }
+
+    function explode(x, y, username, giftImg, colors) {
+        const fx = document.getElementById("fx");
+
+        /* IMAGINEA CADOULUI CU CONTUR MULTICOLOR */
+        const img = document.createElement("img");
+        img.src = giftImg;
+        img.classList.add("gift-img");
+        img.style.left = (x - 70) + "px";
+        img.style.top = (y - 70) + "px";
+        fx.appendChild(img);
+        setTimeout(() => img.remove(), 1000);
+
+        /* USERNAME */
+        const name = document.createElement("div");
+        name.classList.add("uname");
+        name.innerText = username;
+        name.style.left = (x - 120) + "px";
+        name.style.top = (y + 80) + "px";
+        fx.appendChild(name);
+        setTimeout(() => name.remove(), 1200);
+
+        /* PARTICULE COLORATE */
+        for (let i = 0; i < 45; i++) {
+            const p = document.createElement("div");
+            p.classList.add("particle");
+
+            const angle = Math.random() * 2 * Math.PI;
+            const distance = 260 + Math.random() * 180;
+
+            p.style.left = x + "px";
+            p.style.top = y + "px";
+
+            p.style.setProperty("--tx", Math.cos(angle) * distance + "px");
+            p.style.setProperty("--ty", Math.sin(angle) * distance + "px");
+            p.style.setProperty("--color", colors[Math.floor(Math.random() * colors.length)]);
+
+            fx.appendChild(p);
+
+            setTimeout(() => p.remove(), 900);
+        }
+    }
+</script>
+
+</body>
+</html>
